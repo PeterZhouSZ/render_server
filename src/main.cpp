@@ -82,10 +82,47 @@ class Camera {
 };
 
 class Object {
+};
+
+class Triangle2D : public Object {
 public:
-    Object();
+    Triangle2D(GLuint vpos_location, GLuint vcol_location) {
+        const struct {
+            float x, y;
+            float r, g, b;
+        } vertices[3] = {
+            { -0.6f, -0.4f, 1.f, 0.f, 0.f },
+            {  0.6f, -0.4f, 0.f, 1.f, 0.f },
+            {   0.f,  0.6f, 0.f, 0.f, 1.f }
+        };
+        // create vao??
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
 
+        // Create VBO
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+        glEnableVertexAttribArray(vpos_location);
+        glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE,
+                            sizeof(vertices[0]), (void*) 0);
+        glEnableVertexAttribArray(vcol_location);
+        glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
+                            sizeof(vertices[0]), (void*) (sizeof(float) * 2));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
+    void render() {
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(0);
+    }
+
+private:
+    GLuint vbo;
+    GLuint vao;
 };
 
 class Scene {
@@ -99,15 +136,6 @@ class GLShader {
 
 class GLProgram {
 
-};
-
-static const struct {
-    float x, y;
-    float r, g, b;
-} vertices[3] = {
-    { -0.6f, -0.4f, 1.f, 0.f, 0.f },
-    {  0.6f, -0.4f, 0.f, 1.f, 0.f },
-    {   0.f,  0.6f, 0.f, 0.f, 1.f }
 };
 
 static void error_callback(int error, const char* description)
@@ -147,8 +175,9 @@ private:
     GLFWwindow* mWindow;
     int mWidth, mHeight;
     GLuint mProgram;
-    GLuint vertex_buffer, vertex_shader, fragment_shader;
+    //GLuint vertex_buffer, vertex_shader, fragment_shader;
     GLint mvp_location, vpos_location, vcol_location;
+    Triangle2D* tri;
     float ratio;
     mat4x4 mvp;
     char* buffer;
@@ -171,7 +200,7 @@ void GLRenderer::init() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-    mWindow = glfwCreateWindow(640, 480, "Test", NULL, NULL);
+    mWindow = glfwCreateWindow(mWidth, mHeight, "Test", NULL, NULL);
     if(!mWindow) {
         glfwTerminate();
         exit(EXIT_FAILURE);
@@ -182,29 +211,17 @@ void GLRenderer::init() {
 
 void GLRenderer::setupScene() {
     // NOTE: OpenGL error checks have been omitted for brevity
-
-    glGenBuffers(1, &vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
     mProgram = LoadShaders("../scenes/shaders/basic/vs.glsl", "../scenes/shaders/basic/fs.glsl");
 
     mvp_location = glGetUniformLocation(mProgram, "MVP");
     vpos_location = glGetAttribLocation(mProgram, "vPos");
     vcol_location = glGetAttribLocation(mProgram, "vCol");
-
-    glEnableVertexAttribArray(vpos_location);
-    glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE,
-                          sizeof(vertices[0]), (void*) 0);
-    glEnableVertexAttribArray(vcol_location);
-    glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(vertices[0]), (void*) (sizeof(float) * 2));
-
+    tri = new Triangle2D(vpos_location, vcol_location);
+ 
     glfwGetFramebufferSize(mWindow, &mWidth, &mHeight);
     ratio = mWidth / (float) mHeight;
 
     glViewport(0, 0, mWidth, mHeight);
-    
 }
 
 void GLRenderer::render(const Scene* scene) {
@@ -218,14 +235,22 @@ void GLRenderer::render(const Scene* scene) {
 }
 
 void GLRenderer::render() {
+    /**
+     * Activate shader program
+     * set camera and global transformations
+     * for each object
+     *   set transformation
+     *   obj.render()
+     * Write buffer to file
+     */
     mat4x4_ortho(mvp, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
     std::cout << mvp_location << std::endl;
     glUseProgram(mProgram);
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*) mvp);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    tri->render();
 
 #if USE_NATIVE_OSMESA
-    glfwGetOSMesaColorBuffer(window, &width, &height, NULL, (void**) &buffer);
+    glfwGetOSMesaColorBuffer(mWindow, &mWidth, &mHeight, NULL, (void**) &buffer);
 #else
     buffer = static_cast<char*>(calloc(4, mWidth * mHeight));
     glReadPixels(0, 0, mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
