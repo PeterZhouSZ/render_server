@@ -196,9 +196,11 @@ void GLRenderer::init() {
         exit(EXIT_FAILURE);
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     mWindow = glfwCreateWindow(mWidth, mHeight, "Test", NULL, NULL);
     if(!mWindow) {
@@ -207,6 +209,12 @@ void GLRenderer::init() {
     }
     glfwMakeContextCurrent(mWindow);
     gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
+
+    // get version info
+    const GLubyte* renderer = glGetString(GL_RENDERER); // get renderer string
+    const GLubyte* version = glGetString(GL_VERSION); // version as a string
+    printf("Renderer: %s\n", renderer);
+    printf("OpenGL version supported %s\n", version);
 }
 
 void GLRenderer::setupScene() {
@@ -298,7 +306,7 @@ int main(int argc, char** argv) {
     std::string warnings;
     std::string errors;
     bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials,
-    &warnings, &errors, "halfbox.obj", "./");
+    &warnings, &errors, "../scenes/objs/halfbox.obj", "./");
     std::cout << "ret " << ret << std::endl;
     std::cout << "warnings " << warnings << std::endl;
     std::cout << "errors " << errors << std::endl;
