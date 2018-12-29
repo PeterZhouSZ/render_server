@@ -1,8 +1,10 @@
 #include <iostream>
 #include <string>
+#include <map>
 #include <cxxopts/cxxopts.hpp>
 #include <json/json.h>
 #include <npy/npy.hpp>
+#include <glm/glm.hpp>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -82,11 +84,28 @@ class Camera {
 };
 
 class Object {
+public:
+    virtual void setup(GLuint vpos_location, GLuint vcol_location) {}
+    virtual void render() {}
+};
+
+
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 albedo;
+    glm::vec3 normal;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
 };
 
 class Triangle2D : public Object {
 public:
-    Triangle2D(GLuint vpos_location, GLuint vcol_location) {
+    Triangle2D() {
+        // constructor only for creating the geometry
+        
+    }
+
+    void setup(GLuint vpos_location, GLuint vcol_location) override {
         const struct {
             float x, y;
             float r, g, b;
@@ -114,7 +133,7 @@ public:
         glBindVertexArray(0);
     }
 
-    void render() {
+    void render() override {
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindVertexArray(0);
@@ -127,9 +146,57 @@ private:
 
 class Scene {
 public:
-    Scene(const std::string& filename) {}
+    Scene(const std::string& filename) {
+        loadScene(filename);void setup(const std::map<std::string, GLuint>& glsl_vars);
+    }
+
+    void setup(std::map<std::string, GLuint>& glsl_vars);
+    void render();
+private:
+    void loadScene(const std::string& filename);
+    std::vector<Object*> mObjects;
 };
 
+void Scene::loadScene(const std::string& filename)
+{
+    std::ifstream ifs(filename);
+
+    Json::CharReaderBuilder reader;
+    Json::Value obj;
+    std::string json_err;
+    Json::parseFromStream(reader, ifs, &obj, &json_err);
+    auto camera_params = obj["camera"];
+    std::cout << "camera-params " << camera_params << std::endl;
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warnings;
+    std::string errors;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials,
+    &warnings, &errors, "../scenes/objs/halfbox.obj", "./");
+    std::cout << "ret " << ret << std::endl;
+    std::cout << "warnings " << warnings << std::endl;
+    std::cout << "errors " << errors << std::endl;
+    std::cout << attrib.vertices.size() << std::endl;
+    std::cout << attrib.normals.size() << std::endl;
+    std::cout << shapes.size() << std::endl;
+
+    mObjects.push_back(new Triangle2D());
+}
+
+void Scene::setup(std::map<std::string, GLuint>& glsl_vars)
+{
+    for(auto obj: mObjects) {
+        obj->setup(glsl_vars["vpos_location"], glsl_vars["vcol_location"]);
+    }
+}
+
+void Scene::render() {
+    for(auto obj: mObjects) {
+        obj->render();
+    }
+}
 class GLShader {
 
 };
@@ -150,7 +217,7 @@ public:
     mWidth(width), mHeight(mHeight) {
         init();
     }
-    GLRenderer(const Scene* scene, const std::string& output_dir, int width, int height): 
+    GLRenderer(Scene* scene, const std::string& output_dir, int width, int height): 
         mScene(scene), mOutputDir(output_dir), mWidth(width), mHeight(height) 
         {
             init();
@@ -165,19 +232,19 @@ public:
     void render();
 
     // Render a given scene. Useful when the scene is updated
-    void render(const Scene* scene);
+    void render(Scene* scene);
 
     // Render the current scene from a different viewpoint
-    void render(const Camera& camera);
+    void render(Camera& camera);
 private:
     std::string mOutputDir;
-    const Scene* mScene;
+    Scene* mScene;
     GLFWwindow* mWindow;
     int mWidth, mHeight;
     GLuint mProgram;
     //GLuint vertex_buffer, vertex_shader, fragment_shader;
     GLint mvp_location, vpos_location, vcol_location;
-    Triangle2D* tri;
+    Triangle2D* tri; // move this to scene
     float ratio;
     mat4x4 mvp;
     char* buffer;
@@ -218,13 +285,19 @@ void GLRenderer::init() {
 }
 
 void GLRenderer::setupScene() {
+    // TODO: MOVE THIS TO SCENE?
     // NOTE: OpenGL error checks have been omitted for brevity
+    // scene.vertex_shader_path(), scene.fragment_shader_path()
     mProgram = LoadShaders("../scenes/shaders/basic/vs.glsl", "../scenes/shaders/basic/fs.glsl");
 
     mvp_location = glGetUniformLocation(mProgram, "MVP");
     vpos_location = glGetAttribLocation(mProgram, "vPos");
     vcol_location = glGetAttribLocation(mProgram, "vCol");
-    tri = new Triangle2D(vpos_location, vcol_location);
+    // scene.init_objects(vpos_location, vcol_location);
+    std::map<std::string, GLuint> var_name_map;
+    var_name_map["vpos_location"] = vpos_location;
+    var_name_map["vcol_location"] = vcol_location;
+    mScene->setup(var_name_map);
  
     glfwGetFramebufferSize(mWindow, &mWidth, &mHeight);
     ratio = mWidth / (float) mHeight;
@@ -232,7 +305,7 @@ void GLRenderer::setupScene() {
     glViewport(0, 0, mWidth, mHeight);
 }
 
-void GLRenderer::render(const Scene* scene) {
+void GLRenderer::render(Scene* scene) {
     mScene = scene;
 
     // Setup the resources on the GPU
@@ -255,7 +328,8 @@ void GLRenderer::render() {
     std::cout << mvp_location << std::endl;
     glUseProgram(mProgram);
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*) mvp);
-    tri->render();
+    mScene->render();
+    //tri->render();
 
 #if USE_NATIVE_OSMESA
     glfwGetOSMesaColorBuffer(mWindow, &mWidth, &mHeight, NULL, (void**) &buffer);
@@ -270,8 +344,6 @@ void GLRenderer::render() {
                    buffer + (mWidth * 4 * (mHeight - 1)),
                    -mWidth * 4);
 }
-
-
 
 void GLRenderer::updateCamera(const Camera& camera) {
 
@@ -291,31 +363,8 @@ int main(int argc, char** argv) {
     std::cout << "Using scene file: " << scene_filename << std::endl;
     std::cout << "Output directory: " << out_dir << std::endl;
 
-    std::ifstream ifs(scene_filename);
-
-    Json::CharReaderBuilder reader;
-    Json::Value obj;
-    std::string json_err;
-    Json::parseFromStream(reader, ifs, &obj, &json_err);
-    auto camera_params = obj["camera"];
-    std::cout << "camera-params " << camera_params << std::endl;
-
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warnings;
-    std::string errors;
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials,
-    &warnings, &errors, "../scenes/objs/halfbox.obj", "./");
-    std::cout << "ret " << ret << std::endl;
-    std::cout << "warnings " << warnings << std::endl;
-    std::cout << "errors " << errors << std::endl;
-    std::cout << attrib.vertices.size() << std::endl;
-    std::cout << attrib.normals.size() << std::endl;
-    std::cout << shapes.size() << std::endl;
-
     Scene scene(scene_filename);
-    GLRenderer renderer(&scene, out_dir, 640, 480);
+    GLRenderer renderer(&scene, out_dir, 640, 480); // remove specifying width, height? where should this be specified?
     renderer.render();
 
     return 0;
