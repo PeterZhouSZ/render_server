@@ -85,7 +85,7 @@ class Camera {
 
 class Object {
 public:
-    virtual void setup(GLuint vpos_location, GLuint vcol_location) {}
+    virtual void setup(std::map<std::string, GLuint>& var_map) {}
     virtual void render() {}
 };
 
@@ -105,7 +105,9 @@ public:
         
     }
 
-    void setup(GLuint vpos_location, GLuint vcol_location) override {
+    void setup(std::map<std::string, GLuint>& var_map) override {
+        GLuint vpos_location = var_map["vpos_location"];
+        GLuint vcol_location = var_map["vcol_location"];
         const struct {
             float x, y;
             float r, g, b;
@@ -147,7 +149,7 @@ private:
 class Scene {
 public:
     Scene(const std::string& filename) {
-        loadScene(filename);void setup(const std::map<std::string, GLuint>& glsl_vars);
+        loadScene(filename);
     }
 
     void setup(std::map<std::string, GLuint>& glsl_vars);
@@ -188,7 +190,7 @@ void Scene::loadScene(const std::string& filename)
 void Scene::setup(std::map<std::string, GLuint>& glsl_vars)
 {
     for(auto obj: mObjects) {
-        obj->setup(glsl_vars["vpos_location"], glsl_vars["vcol_location"]);
+        obj->setup(glsl_vars);
     }
 }
 
