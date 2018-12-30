@@ -1,11 +1,14 @@
 #version 110
 
 uniform mat4 MVP;
-attribute vec3 vCol;  // vertex color
-attribute vec2 vPos;
-varying vec3 color;
+attribute vec3 albedo;  // vertex color
+attribute vec3 position;
+
+varying vec4 frag_position;
+varying vec3 frag_albedo;
 
 void main() {
-    gl_Position = MVP * vec4(vPos, 0.0, 1.0);
-    color = vCol;
+    gl_Position = MVP * vec4(position, 1.0);
+    frag_position = gl_Position;
+    frag_albedo = albedo;
 }
