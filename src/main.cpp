@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <map>
 #include <cxxopts/cxxopts.hpp>
@@ -92,14 +93,74 @@ GLuint LoadShaders(const std::string& vertex_file_path,
 
 class Camera {
 public:
+    Camera(const Json::Value& camera_spec);
     Camera(glm::vec3 pos, glm::vec3 lookat, glm::vec3 up, float focal_length, float fovy);
     Camera(float focal_length, float fovy);
 
+    void setCameraParameters(glm::vec3 pos, glm::vec3 lookat, glm::vec3 up, float focal_length, float fovy);
+
+    glm::mat4 getViewMatrix();
+    glm::mat4 getProjectionMatrix();
+    glm::mat4 getViewProjectionMatrix();
+
+    float getAspectRatio() { return getWidth() / getHeight(); }
+    float getWidth() { return mViewport[2] - mViewport[0]; }
+    float getHeight() { return mViewport[3] - mViewport[1]; }
+
+    std::string str() const;
 private:
     glm::vec3 mPos;
     glm::vec3 mUp;
-    glm::vec3 mLookat;
+    glm::vec3 mAt;
+    glm::vec3 mWorldUp;
+    float mFovy;
+    float mFocalLength;
+    float mNear, mFar;
+    float mViewport[4];
 };
+
+std::string Camera::str() const {
+    std::stringstream ss;
+    ss << "Camera configuration:\n";
+    ss << "eye : [" << mPos[0] << "," << mPos[1] << "," << mPos[2] << "]\n";
+    ss << "at  : [" << mAt[0] << "," << mAt[1] << "," << mAt[2] << "]\n";
+    ss << "up  : [" << mUp[0] << "," << mUp[1] << "," << mUp[2] << "]\n";
+    ss << "near: " << mNear << "\n";
+    ss << "far : " << mFar << "\n";
+    ss << "fovy: " << mFovy << "\n";
+    ss << "focal_length: " << mFocalLength << "\n";
+    ss << "viewport  : [" << mViewport[0] << "," << mViewport[1] << "," << mViewport[2] << "," << mViewport[3] << "]\n";
+    ss << "\n";
+    return ss.str();
+}
+
+glm::mat4 Camera::getViewMatrix() {
+    return glm::lookAt(mPos, mAt, mUp);
+}
+
+glm::mat4 Camera::getProjectionMatrix() {
+    return glm::perspective(mFovy, getAspectRatio(), mNear, mFar);
+}
+
+glm::mat4 Camera::getViewProjectionMatrix() {
+    return getProjectionMatrix() * getViewMatrix();
+}
+
+Camera::Camera(const Json::Value& camera_spec) {
+    mPos = glm::vec3(camera_spec["eye"][0].asFloat(), camera_spec["eye"][1].asFloat(), camera_spec["eye"][2].asFloat());
+    mAt = glm::vec3(camera_spec["at"][0].asFloat(), camera_spec["at"][1].asFloat(), camera_spec["at"][2].asFloat());
+    mUp = glm::vec3(camera_spec["up"][0].asFloat(), camera_spec["up"][1].asFloat(), camera_spec["up"][2].asFloat());
+    mFovy = camera_spec["fovy"].asFloat();
+    mFocalLength = camera_spec["focal_length"].asFloat();
+    mNear = camera_spec["near"].asFloat();
+    mFar = camera_spec["far"].asFloat();
+
+    for(int i = 0; i < 4; i++) {
+        mViewport[i] = camera_spec["viewport"][i].asFloat();
+    }
+
+    std::cout << str() << std::endl;
+}
 
 struct Object {
 
@@ -295,8 +356,10 @@ private:
     void loadScene(const std::string& filename);
     std::vector<GLRenderableObject*> mObjects;
 
+    Camera* mCamera;
     GLuint mProgram;
-    GLint mvp_location, position_location, albedo_location;
+    GLint model_matrix_location, view_matrix_location, projection_matrix_location;
+    GLint position_location, albedo_location;
     std::string mVertexShaderPath;
     std::string mFragmentShaderPath;
 };
@@ -318,8 +381,7 @@ void Scene::loadScene(const std::string& filename)
     std::cout << "Vertex shader path: " << mVertexShaderPath << std::endl;
     std::cout << "Fragment shader path: " << mFragmentShaderPath << std::endl;
 
-    auto camera_params = obj["camera"];
-    std::cout << "camera-params " << camera_params << std::endl;
+    mCamera = new Camera(obj["camera"]);
 
     auto objects_specs = obj["objects"];
     std::cout << "objects: " << objects_specs << std::endl;
@@ -336,7 +398,10 @@ void Scene::setup()
 {
     mProgram = LoadShaders(mVertexShaderPath, mFragmentShaderPath);
 
-    mvp_location = glGetUniformLocation(mProgram, "MVP");
+    model_matrix_location = glGetUniformLocation(mProgram, "model");
+    view_matrix_location = glGetUniformLocation(mProgram, "view");
+    projection_matrix_location = glGetUniformLocation(mProgram, "projection");
+
     position_location = glGetAttribLocation(mProgram, "position");
     albedo_location = glGetAttribLocation(mProgram, "albedo");
 
@@ -349,11 +414,13 @@ void Scene::setup()
 }
 
 void Scene::render() {
-    glm::mat4 mvp = glm::mat4(1.0);
-    //mat4x4_ortho(mvp, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-    std::cout << mvp_location << std::endl;
+    glm::mat4 mModel = glm::mat4(1.0);
+    glm::mat4 mView = mCamera->getViewMatrix();
+    glm::mat4 mProjection = mCamera->getProjectionMatrix();
     glUseProgram(mProgram);
-    glUniformMatrix4fv(mvp_location, 1, GL_FALSE, glm::value_ptr(mvp));
+    glUniformMatrix4fv(model_matrix_location, 1, GL_FALSE, glm::value_ptr(mModel));
+    glUniformMatrix4fv(view_matrix_location, 1, GL_FALSE, glm::value_ptr(mView));
+    glUniformMatrix4fv(projection_matrix_location, 1, GL_FALSE, glm::value_ptr(mProjection));
     for(auto obj: mObjects) {
         obj->render();
     }
@@ -402,10 +469,6 @@ private:
     Scene* mScene;
     GLFWwindow* mWindow;
     int mWidth, mHeight;
-    // GLuint mProgram;
-    // GLint mvp_location, position_location, albedo_location;
-    //float ratio;
-    //mat4x4 mvp;
     char* buffer;
 
     void init();
@@ -444,21 +507,9 @@ void GLRenderer::init() {
 }
 
 void GLRenderer::setupScene() {
-    // TODO: MOVE THIS TO SCENE?
-    // NOTE: OpenGL error checks have been omitted for brevity
-    // scene.vertex_shader_path(), scene.fragment_shader_path()
-    // mProgram = LoadShaders("../scenes/shaders/basic/vs.glsl", "../scenes/shaders/basic/fs.glsl");
-
-    // mvp_location = glGetUniformLocation(mProgram, "MVP");
-    // position_location = glGetAttribLocation(mProgram, "position");
-    // albedo_location = glGetAttribLocation(mProgram, "albedo");
-
-    // std::map<std::string, GLuint> var_name_map;
-    // var_name_map["position"] = position_location;
-    // var_name_map["albedo"] = albedo_location;
-    //mScene->setup(var_name_map);
-    
     glfwGetFramebufferSize(mWindow, &mWidth, &mHeight);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glEnable(GL_DEPTH_TEST);
     //ratio = mWidth / (float) mHeight;
     mScene->setup();
     glViewport(0, 0, mWidth, mHeight);
@@ -483,7 +534,7 @@ void GLRenderer::render() {
      *   obj.render()
      * Write buffer to file
      */
-    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     mScene->render();
 
 #if USE_NATIVE_OSMESA
