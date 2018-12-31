@@ -5,6 +5,10 @@
 #include <cxxopts/cxxopts.hpp>
 #include <json/json.h>
 #include <npy/npy.hpp>
+
+#include "light.h"
+#include "utils.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -24,14 +28,6 @@
 
 #include <tiny_obj_loader.h>
 
-std::string get_basedir(const std::string& filename)
-{
-    auto pos = filename.find_last_of("/\\");
-    if(pos != std::string::npos) {
-        return filename.substr(0, pos);
-    }
-    return "";
-}
 
 std::string load_shader_code(const std::string& path)
 {
@@ -220,11 +216,9 @@ public:
                             sizeof(vertices[0]), (void*) (sizeof(float) * 3));
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
-        std::cout << "TestTriangle::setup" << std::endl;
     }
 
     void render() override {
-        std::cout << "TestTriangle::render" << std::endl;
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindVertexArray(0);
@@ -338,7 +332,6 @@ void TriangleMesh::setup(GLSLVarMap& var_map) {
 
 void TriangleMesh::render()
 {
-    std::cout << __FUNCTION__ << std::endl;
     glBindVertexArray(mVao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
@@ -354,8 +347,10 @@ public:
     void render();
 private:
     void loadScene(const std::string& filename);
-    std::vector<GLRenderableObject*> mObjects;
+    void loadLights(const Json::Value& light_spec);
 
+    std::vector<GLRenderableObject*> mObjects;
+    std::vector<std::shared_ptr<Light>> mLights;
     Camera* mCamera;
     GLuint mProgram;
     GLint model_matrix_location, view_matrix_location, projection_matrix_location;
@@ -387,7 +382,6 @@ void Scene::loadScene(const std::string& filename)
     std::cout << "objects: " << objects_specs << std::endl;
 
     //mObjects.push_back(new TestTriangle());
-
     for(auto obj: objects_specs["obj"]) {
         std::cout << obj["path"].asString() << std::endl;
         mObjects.push_back(new TriangleMesh(basedir + "/" + obj["path"].asString()));
@@ -464,6 +458,13 @@ public:
 
     // Render the current scene from a different viewpoint
     void render(Camera& camera);
+
+    int shouldClose() { return glfwWindowShouldClose(mWindow); }
+    void swapBuffers() { glfwSwapBuffers(mWindow);  }
+
+    static void key_callback(GLFWwindow* window,
+        int key, int scancode, int action,
+        int mods);
 private:
     std::string mOutputDir;
     Scene* mScene;
@@ -476,6 +477,13 @@ private:
     void updateCamera(const Camera& camera);
 };
 
+void GLRenderer::key_callback(GLFWwindow* window, int key,
+			 int scancode, int action,
+			 int mods) {
+  if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, true);
+}
+
 void GLRenderer::init() {
     glfwSetErrorCallback(error_callback);
 
@@ -487,18 +495,21 @@ void GLRenderer::init() {
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    //glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     mWindow = glfwCreateWindow(mWidth, mHeight, "Render Server", NULL, NULL);
+
     if(!mWindow) {
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
     glfwMakeContextCurrent(mWindow);
     gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
-
+    
+    glfwSetWindowUserPointer(mWindow, this);
+    glfwSetKeyCallback(mWindow, key_callback);
     // get version info
     const GLubyte* renderer = glGetString(GL_RENDERER); // get renderer string
     const GLubyte* version = glGetString(GL_VERSION); // version as a string
@@ -555,6 +566,16 @@ void GLRenderer::updateCamera(const Camera& camera) {
 
 }
 
+void interactive_session() {
+
+}
+
+void offline_view_generation_session() {
+    /**
+     * Randomly generate views, render to offscreen buffer and output to file.
+     */
+}
+
 int main(int argc, char** argv) {
     std::cout << "Render Server\nBuild date: " << __DATE__ << " " << __TIME__ << "\n" << std::endl;
     cxxopts::Options options("Render", "Render Server");
@@ -571,7 +592,12 @@ int main(int argc, char** argv) {
 
     Scene scene(scene_filename);
     GLRenderer renderer(&scene, out_dir, 640, 480); // remove specifying width, height? where should this be specified?
-    renderer.render();
+    // if in interactive mode
+    while(!renderer.shouldClose()) {
+        glfwPollEvents();
+        renderer.render();
+        renderer.swapBuffers();
+    }
 
     return 0;
 }

@@ -12,6 +12,6 @@ varying vec3 frag_albedo;
 
 void main() {
     gl_Position = projection * view * model * vec4(position, 1.0);
-    frag_position = gl_Position;
+    frag_position = clamp(gl_Position, 0.0, 1.0);
     frag_albedo = albedo;
 }

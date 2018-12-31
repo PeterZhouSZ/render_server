@@ -11,7 +11,9 @@ set(PUBLIC_DOCS
 # )
 
 set(SOURCES
-  src/main.cpp
+  src/main.cc
+  src/utils.cc
+  src/renderer.cc
   external/json/jsoncpp.cpp
   external/glad/glad.c
   external/tiny_obj_loader/tiny_obj_loader.cc
