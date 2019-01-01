@@ -14,6 +14,11 @@ set(SOURCES
   src/main.cc
   src/utils.cc
   src/renderer.cc
+  src/camera.cc
+  src/scene.cc
+  src/object.cc
+  src/shader.cc
+  src/light.cc
   external/json/jsoncpp.cpp
   external/glad/glad.c
   external/tiny_obj_loader/tiny_obj_loader.cc
