@@ -49,11 +49,15 @@ void Scene::setup()
     projection_matrix_location = glGetUniformLocation(mProgram, "projection");
 
     position_location = glGetAttribLocation(mProgram, "position");
+    normal_location = glGetAttribLocation(mProgram, "normal");
     albedo_location = glGetAttribLocation(mProgram, "albedo");
+    coeffs_location = glGetAttribLocation(mProgram, "coeffs");
 
     std::map<std::string, GLuint> var_name_map;
     var_name_map["position"] = position_location;
+    var_name_map["normal"] = normal_location;
     var_name_map["albedo"] = albedo_location;
+    var_name_map["coeffs"] = coeffs_location;
     for(auto obj: mObjects) {
         obj->setup(var_name_map);
     }

@@ -23,13 +23,13 @@ public:
 
 struct Material {
     glm::vec3 albedo;
-    glm::vec3 coeffs; // kd, ks, theta
+    glm::vec3 coeffs; // kd, ks, specular highight N in (cos(theta))^N
 };
 
 struct Vertex {
-    glm::vec3 pos;
+    glm::vec3 position;
     glm::vec3 normal;
-    Material mat;
+    Material material;
 };
 
 class TestTriangle : public GLRenderableObject {
@@ -100,13 +100,17 @@ public:
     void setup(GLSLVarMap& var_map) override;
     void render() override;
 private:
-    GLuint mVao;
-    GLuint mVbo;
-    GLuint mIbo;
-    std::vector<float> mBuffer;
-    std::vector<glm::vec3> mVertices;
-    std::vector<glm::ivec3> mIndices;   // vertex indices forming a face
+    GLuint mVAO;
+    GLuint mVBO;
+    //GLuint mIBO;
+    std::vector<Vertex> mBuffer;
+    //std::vector<glm::vec3> mVertices;
+    //std::vector<glm::vec3> mNormals;
+    //std::vector<glm::vec2> mTexCoords;
+    //std::vector<glm::ivec3> mIndices;   // vertex indices forming a face
 
+    Material mMaterial; // single material for all faces
+    
     void loadObj(const std::string& filename);
 };
 

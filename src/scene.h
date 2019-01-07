@@ -35,7 +35,7 @@ private:
     Camera* mCamera;
     GLuint mProgram;
     GLint model_matrix_location, view_matrix_location, projection_matrix_location;
-    GLint position_location, albedo_location;
+    GLint position_location, normal_location, albedo_location, coeffs_location;
     std::string mVertexShaderPath;
     std::string mFragmentShaderPath;
 };
