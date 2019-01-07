@@ -148,6 +148,12 @@ void TriangleMesh::loadObj(const std::string& filename)
     }*/
 }
 
+void TriangleMesh::set_transformations(glm::vec3 translate, glm::mat4 rotate)
+{
+    mTranslation = translate;
+    mRotation = rotate;
+}
+
 void TriangleMesh::setup(GLSLVarMap& var_map) {
     GLuint vpos_location = var_map["position"];
     GLuint vnormal_location = var_map["normal"];
@@ -199,7 +205,7 @@ void TriangleMesh::setup(GLSLVarMap& var_map) {
     glBindVertexArray(0);
 }
 
-void TriangleMesh::render()
+void TriangleMesh::render(GLint model_matrix_location)
 {
     glBindVertexArray(mVAO);
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mIBO);

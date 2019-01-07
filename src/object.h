@@ -5,11 +5,14 @@
 #include <map>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glad/glad.h>
 
 
 struct Object {
-
+public:
+    virtual glm::mat4 get_transformation() const = 0;
+    virtual void set_transformations(glm::vec3 translate, glm::mat4 rotate) = 0;
 };
 
 using GLSLVarMap = std::map<std::string, GLuint>;
@@ -18,7 +21,7 @@ class GLRenderableObject: public Object {
     // Objects that can be rendered using OpenGL
 public:
     virtual void setup(GLSLVarMap& var_map) = 0;
-    virtual void render() = 0;
+    virtual void render(GLint model_matrix_location) = 0;
 };
 
 struct Material {
@@ -67,8 +70,15 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }
+    void set_transformations(glm::vec3 translate, glm::mat4 rotate) override
+    {}
 
-    void render() override {
+    glm::mat4 get_transformation() const override
+    {
+        return glm::mat4(1.0);
+    }
+
+    void render(GLint model_matrix_location) override {
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glBindVertexArray(0);
@@ -93,12 +103,16 @@ class TriangleMesh: public GLRenderableObject {
     // Renderable triangle mesh
     // List of vertices and faces of triangles
 public:
-    TriangleMesh(const std::string& obj_filename) {
+    TriangleMesh(const std::string& obj_filename, glm::vec3 translate=glm::vec3(0.0),
+        glm::mat4 rotate=glm::mat4(1.0))
+        : mTranslation(translate), mRotation(rotate) {
         loadObj(obj_filename);
     }
 
+    void set_transformations(glm::vec3 translate, glm::mat4 rotate) override;
+    glm::mat4 get_transformation() const override { return mRotation * glm::translate(glm::mat4(1.0), mTranslation); }
     void setup(GLSLVarMap& var_map) override;
-    void render() override;
+    void render(GLint model_matrix_location) override;
 private:
     GLuint mVAO;
     GLuint mVBO;
@@ -111,6 +125,9 @@ private:
 
     Material mMaterial; // single material for all faces
     
+    glm::vec3 mTranslation;
+    glm::mat4 mRotation;
+
     void loadObj(const std::string& filename);
 };
 

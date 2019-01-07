@@ -1,4 +1,4 @@
-#version 330
+#version 110
 
 #define MAX_NUM_LIGHTS 8
 
@@ -16,8 +16,7 @@ attribute vec3 position;
 attribute vec3 normal
 attribute vec3 albedo;
 attribute vec3 coeffs;
-attribute vec3 kd;  // diffuse
-attribute vec3 ks;  // specular
+
 varying vec4 frag_position;
 varying vec3 frag_normal;
 varying vec3 frag_albedo;

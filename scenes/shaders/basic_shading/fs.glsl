@@ -1,10 +1,10 @@
-#version 330
+#version 110
 
-in vec4 frag_position;
-in vec3 frag_normal;
-in vec3 frag_albedo;
-in vec3 frag_coeffs;
+varying vec4 frag_position;
+varying vec4 frag_normal;
+varying vec3 frag_albedo;
+varying vec3 frag_coeffs;
 
 void main() {
-    gl_FragColor = frag_position; 
+    gl_FragColor = frag_normal; 
 }
