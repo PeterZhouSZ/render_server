@@ -47,8 +47,10 @@ glm::vec3 computeNormal(const glm::vec3& v0, const glm::vec3& v1, const glm::vec
     return glm::normalize(glm::cross(v1 - v0, v2 - v0));
 }
 
-void TriangleMesh::loadObj(const std::string& filename)
+void TriangleMesh::loadObj(const std::string& filename,
+    Material mat)
 {
+    mMaterial = mat;
     std::string basedir = get_basedir(filename);
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -92,8 +94,8 @@ void TriangleMesh::loadObj(const std::string& filename)
         }
     }
     assert(shapes.size() <= 1); // for now, 1 shape per obj file
-    mMaterial.albedo = glm::vec3(0.8); // TODO: FIX
-    mMaterial.coeffs = glm::vec3(1, 0, 0);
+    //mMaterial.albedo = glm::vec3(0.8); // TODO: FIX
+    //mMaterial.coeffs = glm::vec3(1, 0, 0);
 
     for(size_t i = 0; i < shapes.size(); i++) {
         std::cout << "shapes[i].mesh.indices.size() " << shapes[i].mesh.indices.size() << std::endl;
@@ -148,10 +150,12 @@ void TriangleMesh::loadObj(const std::string& filename)
     }*/
 }
 
-void TriangleMesh::set_transformations(glm::vec3 translate, glm::mat4 rotate)
+void TriangleMesh::set_transformations(glm::vec3 translate, 
+    glm::mat4 rotate, glm::vec3 scale)
 {
     mTranslation = translate;
     mRotation = rotate;
+    mScale = scale;
 }
 
 void TriangleMesh::setup(GLSLVarMap& var_map) {

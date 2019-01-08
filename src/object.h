@@ -12,7 +12,7 @@
 struct Object {
 public:
     virtual glm::mat4 get_transformation() const = 0;
-    virtual void set_transformations(glm::vec3 translate, glm::mat4 rotate) = 0;
+    virtual void set_transformations(glm::vec3 translate, glm::mat4 rotate, glm::vec3 scale) = 0;
 };
 
 using GLSLVarMap = std::map<std::string, GLuint>;
@@ -70,7 +70,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }
-    void set_transformations(glm::vec3 translate, glm::mat4 rotate) override
+    void set_transformations(glm::vec3 translate, glm::mat4 rotate, glm::vec3 scale) override
     {}
 
     glm::mat4 get_transformation() const override
@@ -103,14 +103,19 @@ class TriangleMesh: public GLRenderableObject {
     // Renderable triangle mesh
     // List of vertices and faces of triangles
 public:
-    TriangleMesh(const std::string& obj_filename, glm::vec3 translate=glm::vec3(0.0),
-        glm::mat4 rotate=glm::mat4(1.0))
-        : mTranslation(translate), mRotation(rotate) {
-        loadObj(obj_filename);
+    TriangleMesh(const std::string& obj_filename,
+        Material mat, glm::vec3 translate=glm::vec3(0.0),
+        glm::mat4 rotate=glm::mat4(1.0),
+        glm::vec3 scale=glm::vec3(1.0))
+        : mTranslation(translate), mRotation(rotate),
+        mScale(scale) {
+        loadObj(obj_filename, mat);
     }
 
-    void set_transformations(glm::vec3 translate, glm::mat4 rotate) override;
-    glm::mat4 get_transformation() const override { return mRotation * glm::translate(glm::mat4(1.0), mTranslation); }
+    void set_transformations(glm::vec3 translate, glm::mat4 rotate, glm::vec3 scale) override;
+    glm::mat4 get_transformation() const override { 
+        return glm::translate(glm::mat4(1.0), mTranslation) * mRotation * glm::scale(glm::mat4(1.0), mScale);
+    }
     void setup(GLSLVarMap& var_map) override;
     void render(GLint model_matrix_location) override;
 private:
@@ -127,7 +132,8 @@ private:
     
     glm::vec3 mTranslation;
     glm::mat4 mRotation;
+    glm::vec3 mScale;
 
-    void loadObj(const std::string& filename);
+    void loadObj(const std::string& filename, Material mat);
 };
 
