@@ -1,5 +1,5 @@
 {"file-format": {"type": "diffrend", "version": "0.1"},
- "glsl": {"vertex": "./shaders/basic/vs.glsl", "fragment": "./shaders/basic/fs.glsl"},
+ "glsl": {"vertex": "./shaders/phong/vs.glsl", "fragment": "./shaders/phong/fs.glsl"},
  "camera": {
     "proj_type": "perspective",
     "viewport": [0, 0, 640, 480],
