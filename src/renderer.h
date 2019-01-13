@@ -15,11 +15,11 @@
 class GLRenderer {
 public:
     GLRenderer(const std::string& output_dir, int width, int height): mOutputDir(output_dir),
-    mWidth(width), mHeight(mHeight) {
+    mWidth(width), mHeight(mHeight), mBuffer(nullptr), mRGBD(nullptr) {
         init();
     }
     GLRenderer(Scene* scene, const std::string& output_dir): 
-        mScene(scene), mOutputDir(output_dir) 
+        mScene(scene), mOutputDir(output_dir), mBuffer(nullptr), mRGBD(nullptr)
         {   
             mWidth = scene->getWidth();
             mHeight = scene->getHeight();
@@ -29,6 +29,12 @@ public:
     ~GLRenderer() {
         glfwDestroyWindow(mWindow);
         glfwTerminate();
+        if(mBuffer) {
+            delete [] mBuffer;
+        }
+        if(mRGBD) {
+            delete [] mRGBD;
+        }
     }
 
     // Render a given scene. Useful when the scene is updated
@@ -48,7 +54,8 @@ private:
     Scene* mScene;
     GLFWwindow* mWindow;
     int mWidth, mHeight;
-    char* buffer;
+    char* mBuffer;
+    float* mRGBD;
 
     GLuint mFBO;
     GLuint mTexRGBD;
