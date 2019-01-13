@@ -32,9 +32,16 @@ vec4 get_cam_dir_normal()
 void main() {
     pos = frag_position;
     normal = get_cam_dir_normal();
-    vec4 light_irradiance = vec4(light_color[0], 1.0) * dot(normalize(normal), normalize(light_pos[0] - pos));
-    for(int i = 1; i < MAX_NUM_LIGHTS; i++) {
-        light_irradiance += vec4(light_color[i], 1.0) * dot(normalize(normal), normalize(light_pos[i] - pos));
+    vec4 light_irradiance = vec4(0.0);
+    for(int i = 0; i < MAX_NUM_LIGHTS; i++) {
+        vec4 light_dir = light_pos[i] - pos;
+        float light_dist = length(light_dir);
+        light_dir = normalize(light_dir);
+        float divisor = (light_attenuation[i].x + light_dist * light_attenuation[i].y + light_dist * light_dist * light_attenuation[i].z);
+        if(abs(divisor) < 1e-8)
+            divisor = 1.0;
+        float att_factor = 1.0 / divisor;
+        light_irradiance += vec4(light_color[i], 1.0) * dot(normal, light_dir) * att_factor;
     }
     vec4 clr = clamp(vec4(frag_albedo, 1.0) * light_irradiance + vec4(ambient * 10.0, 1.0), 0.0, 1.0);
 
