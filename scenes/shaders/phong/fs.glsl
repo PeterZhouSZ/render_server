@@ -15,10 +15,9 @@ in vec4 frag_normal;
 in vec3 frag_albedo;
 in vec3 frag_coeffs;
 
-out vec4 color;
-out vec4 rgbd;
-out vec3 pos;
-out vec3 normal;
+layout(location=0) out vec4 color;
+layout(location=1) out vec4 pos;
+layout(location=2) out vec4 normal;
 
 void main() {
     //gl_FragColor = frag_normal; //frag_position; //vec4(frag_albedo, 1.0);
@@ -30,7 +29,7 @@ void main() {
     //gl_FragData[1] = vec4(color.xyz, 1.0); //vec4(color.xyz, frag_position.z);
     //gl_FragColor = vec4(color.xyz, 1.0);
     color = vec4(tmp_color.xyz, 1.0);
-    rgbd = vec4(tmp_color.xyz, frag_position.z);
-    pos = frag_position.xyz / frag_position.w;
-    normal = frag_normal.xyz;
+    //color = vec4(1, 2, 3, 1.0);
+    pos = frag_position;
+    normal = frag_normal;
 }

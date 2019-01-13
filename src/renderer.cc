@@ -3,7 +3,7 @@
 
 #include "renderer.h"
 #include <stb/stb_image_write.h>
-
+#include <fstream>
 
 static void error_callback(int error, const char* description) {
     fprintf(stderr, "Error: %s\n", description);
@@ -68,7 +68,7 @@ void GLRenderer::init() {
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     mBuffer = static_cast<char*>(calloc(4, mWidth * mHeight));
-    mRGBD = static_cast<float*>(calloc(4, mWidth * mHeight));
+    mRGBD = static_cast<float*>(calloc(4, mWidth * mHeight * sizeof(float)));
 }
 
 void GLRenderer::setupScene() {
@@ -103,10 +103,16 @@ void GLRenderer::render(const Camera* camera, const std::string& outfilename) {
     glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         mScene->render(camera);
-        glReadPixels(0, 0, mWidth, mHeight, GL_RGBA32F, GL_FLOAT, mRGBD);
-        //for(int i = 490; i < 500; i++)
-        //    std::cout << mRGBD[i] << " ";
-        //std::cout << std::endl;
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glReadPixels(0, 0, mWidth, mHeight, GL_RGBA, GL_FLOAT, mRGBD);
+        /* for(int i = 0; i < 10; i++)
+            std::cout << mRGBD[i] << " ";
+        std::cout << std::endl; */
+        /* stbi_write_hdr((outfilename + ".dat").c_str(),
+                mWidth, mHeight, 4,
+                mRGBD); */
+        std::ofstream outfile((outfilename + ".dat").c_str(), std::ios::out | std::ios::binary);
+        outfile.write((const char*) mRGBD, mWidth * mHeight * 4 * sizeof(float));
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     mScene->render(camera);

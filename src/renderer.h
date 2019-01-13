@@ -27,14 +27,14 @@ public:
             setupScene();
         }
     ~GLRenderer() {
+        if(mRGBD) {
+            free(mRGBD);
+        }
+        if(mBuffer) {
+            free(mBuffer);
+        }
         glfwDestroyWindow(mWindow);
         glfwTerminate();
-        if(mBuffer) {
-            delete [] mBuffer;
-        }
-        if(mRGBD) {
-            delete [] mRGBD;
-        }
     }
 
     // Render a given scene. Useful when the scene is updated
