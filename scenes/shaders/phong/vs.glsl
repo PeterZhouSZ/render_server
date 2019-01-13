@@ -5,6 +5,8 @@
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 inv_model_view;
+uniform mat4 inv_model_view_transpose;
 uniform vec3 cam_pos;
 
 uniform vec3 ambient;
@@ -18,6 +20,7 @@ in vec3 normal;
 in vec3 albedo;  // vertex color
 in vec3 coeffs;
 
+// fragment params in view space
 out vec4 frag_position;
 out vec4 frag_normal;
 out vec3 frag_albedo;
@@ -26,8 +29,8 @@ out vec3 frag_coeffs;
 
 void main() {
     gl_Position = projection * view * model * vec4(position, 1.0);
-    frag_position = clamp(gl_Position, 0.0, 1.0);
-    frag_normal = model * vec4(normal, 1.0); // TODO
+    frag_position = view * model * vec4(position, 1.0);
+    frag_normal = normalize(inv_model_view_transpose * vec4(normal, 0.0));
     frag_albedo = albedo;
     frag_coeffs = coeffs;
 }

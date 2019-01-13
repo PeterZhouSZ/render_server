@@ -4,6 +4,8 @@
 
 uniform vec3 cam_pos;
 
+uniform mat4 view;
+
 uniform vec3 ambient;
 uniform vec4 light_pos[MAX_NUM_LIGHTS];
 uniform vec3 light_color[MAX_NUM_LIGHTS];  // emission
@@ -22,7 +24,8 @@ layout(location=2) out vec4 normal;
 vec4 get_cam_dir_normal()
 {
     // Flip per-fragment normals if needed based on the camera direction
-    vec3 cam_dir = normalize(cam_pos.xyz - frag_position.xyz);
+    vec4 cam_pos_viewspace = view * vec4(cam_pos, 1.0);
+    vec3 cam_dir = normalize(cam_pos_viewspace.xyz - frag_position.xyz);
     float dot_prod = dot(cam_dir, frag_normal.xyz);
     float sgn = sign(dot_prod);
     //return vec4(frag_normal.xyz * sgn, 0.0);
@@ -33,8 +36,10 @@ void main() {
     pos = frag_position;
     normal = get_cam_dir_normal();
     vec4 light_irradiance = vec4(0.0);
+    
     for(int i = 0; i < MAX_NUM_LIGHTS; i++) {
-        vec4 light_dir = light_pos[i] - pos;
+        vec4 lpos = view * light_pos[i];
+        vec4 light_dir = lpos - pos;
         float light_dist = length(light_dir);
         light_dir = normalize(light_dir);
         float divisor = (light_attenuation[i].x + light_dist * light_attenuation[i].y + light_dist * light_dist * light_attenuation[i].z);
