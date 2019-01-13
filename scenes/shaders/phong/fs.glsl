@@ -19,17 +19,24 @@ layout(location=0) out vec4 color;
 layout(location=1) out vec4 pos;
 layout(location=2) out vec4 normal;
 
+vec4 get_cam_dir_normal()
+{
+    // Flip per-fragment normals if needed based on the camera direction
+    vec3 cam_dir = normalize(cam_pos.xyz - frag_position.xyz);
+    float dot_prod = dot(cam_dir, frag_normal.xyz);
+    float sgn = sign(dot_prod);
+    //return vec4(frag_normal.xyz * sgn, 0.0);
+    return normalize(vec4(frag_normal.xyz, 0));
+}
+
 void main() {
-    //gl_FragColor = frag_normal; //frag_position; //vec4(frag_albedo, 1.0);
-    vec4 light_irradiance = vec4(light_color[0], 1.0) * dot(normalize(frag_normal), normalize(light_pos[0] - frag_position));
-    for(int i = 1; i < MAX_NUM_LIGHTS; i++) {
-        light_irradiance += vec4(light_color[i], 1.0) * dot(normalize(frag_normal), normalize(light_pos[i] - frag_position));
-    }
-    vec4 tmp_color = clamp(vec4(frag_albedo, 1.0) * light_irradiance + vec4(ambient * 10.0, 1.0), 0.0, 1.0);
-    //gl_FragData[1] = vec4(color.xyz, 1.0); //vec4(color.xyz, frag_position.z);
-    //gl_FragColor = vec4(color.xyz, 1.0);
-    color = vec4(tmp_color.xyz, 1.0);
-    //color = vec4(1, 2, 3, 1.0);
     pos = frag_position;
-    normal = frag_normal;
+    normal = get_cam_dir_normal();
+    vec4 light_irradiance = vec4(light_color[0], 1.0) * dot(normalize(normal), normalize(light_pos[0] - pos));
+    for(int i = 1; i < MAX_NUM_LIGHTS; i++) {
+        light_irradiance += vec4(light_color[i], 1.0) * dot(normalize(normal), normalize(light_pos[i] - pos));
+    }
+    vec4 clr = clamp(vec4(frag_albedo, 1.0) * light_irradiance + vec4(ambient * 10.0, 1.0), 0.0, 1.0);
+
+    color = vec4(clr.xyz, 1.0);
 }
