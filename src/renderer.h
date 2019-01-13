@@ -50,6 +50,9 @@ private:
     int mWidth, mHeight;
     char* buffer;
 
+    GLuint mFBO;
+    GLuint mTexRGBD;
+
     void init();
     void setupScene();
     void updateCamera(const Camera& camera);

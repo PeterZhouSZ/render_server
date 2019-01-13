@@ -47,6 +47,17 @@ void GLRenderer::init() {
     const GLubyte* version = glGetString(GL_VERSION); // version as a string
     printf("Renderer: %s\n", renderer);
     printf("OpenGL version supported %s\n", version);
+
+    // setting up framebuffer
+    glGenFramebuffers(1, &mFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+    
+    glGenTextures(1, &mTexRGBD);
+
+    glBindTexture(GL_TEXTURE_2D, mTexRGBD);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, mWidth, mHeight, 0, GL_RGBA, GL_FLOAT, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mTexRGBD, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void GLRenderer::setupScene() {
@@ -77,6 +88,7 @@ void GLRenderer::render(const Camera* camera, const std::string& outfilename) {
      *   obj.render()
      * Write buffer to file
      */
+    // set the FBO
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     mScene->render(camera);
 

@@ -1,14 +1,6 @@
 #include <iostream>
-//#include <sstream>
 #include <string>
-//#include <map>
 #include <cxxopts/cxxopts.hpp>
-//#include <json/json.h>
-//#include <npy/npy.hpp>
-
-// #include <glm/glm.hpp>
-// #include <glm/gtc/matrix_transform.hpp>
-// #include <glm/gtc/type_ptr.hpp>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -18,17 +10,15 @@
     #include <GLFW/glfw3native.h>
 #endif
 
-//#include <linmath.h>
-
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
 
-//#include <tiny_obj_loader.h>
 #include "object.h"
 #include "light.h"
 #include "utils.h"
 #include "scene.h"
 #include "renderer.h"
+#include "camera.h"
 
 
 int main(int argc, char** argv) {
