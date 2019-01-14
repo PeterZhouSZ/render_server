@@ -36,7 +36,7 @@ void main() {
     pos = frag_position;
     normal = get_cam_dir_normal();
     vec4 light_irradiance = vec4(0.0);
-    
+
     for(int i = 0; i < MAX_NUM_LIGHTS; i++) {
         vec4 lpos = view * light_pos[i];
         vec4 light_dir = lpos - pos;
